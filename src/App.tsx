@@ -20,19 +20,13 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize Gemini
 // The API Key is retrieved from environment variables
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// Helper to get Gemini instance safely
-const getAI = () => {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === "undefined" || GEMINI_API_KEY === "MY_GEMINI_API_KEY") {
-    return null;
-  }
-  return new GoogleGenAI(GEMINI_API_KEY);
+// Helper to check if the API key is actually set and valid-looking
+const isApiKeyValid = (key: any): key is string => {
+  return typeof key === 'string' && key.trim().length > 10 && !['undefined', 'null', 'MY_GEMINI_API_KEY'].includes(key.trim());
 };
-
-const ai = getAI();
 
 type Step = 'intro' | 'recipient' | 'name' | 'details' | 'style' | 'generating' | 'result';
 
@@ -92,18 +86,20 @@ export default function App() {
     `;
 
     try {
-      if (!ai) {
-        throw new Error("API Key no configurada");
+      if (!isApiKeyValid(GEMINI_API_KEY)) {
+        throw new Error("API Key no configurada correctamente en Vercel");
       }
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const aiInstance = new GoogleGenAI(GEMINI_API_KEY);
+      const model = aiInstance.getGenerativeModel({ model: "gemini-1.5-flash" });
       const response = await model.generateContent(promptInstructions);
       const output = await response.response;
       const cleanPrompt = output.text().trim() || "Error generating prompt.";
       setGeneratedPrompt(cleanPrompt.substring(0, 500));
       setStep('result');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating prompt:", error);
-      setGeneratedPrompt("Error al generar el prompt. Intenta de nuevo.");
+      setGeneratedPrompt(error.message || "Error al generar el prompt. Intenta de nuevo.");
       setStep('result');
     }
   };
@@ -463,7 +459,7 @@ export default function App() {
                   <span className={`text-xs font-semibold tracking-wider uppercase ${s.active ? 'text-stone-100' : 'text-stone-600'}`}>{s.l}</span>
                 </div>
               ))}
-              {!ai && (
+              {!isApiKeyValid(GEMINI_API_KEY) && (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[10px] space-y-1">
                   <div className="font-bold flex items-center gap-2">
                     <Sparkles size={10} /> KEY_MISSING
