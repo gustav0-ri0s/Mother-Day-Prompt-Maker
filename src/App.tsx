@@ -21,8 +21,18 @@ import {
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize Gemini
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const ai = GEMINI_API_KEY ? new GoogleGenAI(GEMINI_API_KEY) : null;
+// The API Key is retrieved from environment variables
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+// Helper to get Gemini instance safely
+const getAI = () => {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === "undefined" || GEMINI_API_KEY === "MY_GEMINI_API_KEY") {
+    return null;
+  }
+  return new GoogleGenAI(GEMINI_API_KEY);
+};
+
+const ai = getAI();
 
 type Step = 'intro' | 'recipient' | 'name' | 'details' | 'style' | 'generating' | 'result';
 
@@ -453,6 +463,14 @@ export default function App() {
                   <span className={`text-xs font-semibold tracking-wider uppercase ${s.active ? 'text-stone-100' : 'text-stone-600'}`}>{s.l}</span>
                 </div>
               ))}
+              {!ai && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[10px] space-y-1">
+                  <div className="font-bold flex items-center gap-2">
+                    <Sparkles size={10} /> KEY_MISSING
+                  </div>
+                  <p className="opacity-70">Configura VITE_GEMINI_API_KEY en Vercel para activar la IA.</p>
+                </div>
+              )}
             </nav>
           </div>
 
