@@ -21,7 +21,8 @@ import {
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+const ai = GEMINI_API_KEY ? new GoogleGenAI(GEMINI_API_KEY) : null;
 
 type Step = 'intro' | 'recipient' | 'name' | 'details' | 'style' | 'generating' | 'result';
 
@@ -81,12 +82,13 @@ export default function App() {
     `;
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: promptInstructions,
-      });
-      
-      const cleanPrompt = response.text?.trim() || "Error generating prompt.";
+      if (!ai) {
+        throw new Error("API Key no configurada");
+      }
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const response = await model.generateContent(promptInstructions);
+      const output = await response.response;
+      const cleanPrompt = output.text().trim() || "Error generating prompt.";
       setGeneratedPrompt(cleanPrompt.substring(0, 500));
       setStep('result');
     } catch (error) {
